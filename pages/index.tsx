@@ -36,7 +36,7 @@ const Home: NextPage = () => {
           />
         </Switch>
 
-        <div className="bg-gray-500 rounded shadow">Name: "Jim"</div>
+        <div className="bg-blue-100 rounded shadow">My name is Jim</div>
       </main>
     </div>
   );
