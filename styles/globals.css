@@ -4,6 +4,5 @@
 
 @layer base {
   html {
-    @apply bg-red-300;
   }
 }

@@ -1,11 +1,75 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import { useState } from "react";
-import { BeakerIcon } from "@heroicons/react/solid";
-import { Switch } from "@headlessui/react";
+import { useState, useEffect } from "react";
+import mapboxgl from "mapbox-gl";
 
-const Home: NextPage = () => {
-  const [enabled, setEnabled] = useState(false);
+const map = null;
+const marker = null;
+
+// set the mapbox access token
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_KEY;
+
+export async function getStaticProps() {
+  // get shops from open api
+
+  const res = await fetch(
+    `https://hotels4.p.rapidapi.com/locations/v2/search?query=Taipei`,
+    {
+      method: "GET",
+      headers: {
+        "x-rapidapi-host": "hotels4.p.rapidapi.com",
+        "x-rapidapi-key": "048644b46emsh46d842ec6070db4p19e103jsnbad540938da9",
+      },
+    }
+  );
+
+  const data = await res.json();
+  let hotels: [] = data?.suggestions[1]?.entities || [];
+
+  //   {
+  //     "geoId": "21035",
+  //     "destinationId": "120725",
+  //     "landmarkCityDestinationId": null,
+  //     "type": "HOTEL",
+  //     "redirectPage": "DEFAULT_PAGE",
+  //     "latitude": 25.035875,
+  //     "longitude": 121.562345,
+  //     "searchDetail": null,
+  //     "caption": "Grand Hyatt <span class='highlighted'>Taipei</span>, Taipei, Taiwan",
+  //     "name": "Grand Hyatt Taipei"
+  // }
+  console.log("hotels", hotels);
+
+  return {
+    props: { hotels },
+  };
+}
+
+interface Props {
+  shops: [];
+}
+
+const Home: NextPage = ({ hotels }: Props) => {
+  const [onlyTaipei, setOnlyTaipei] = useState(false);
+  const [activeHotel, setActiveHotel] = useState(hotels[0]);
+
+  let { latitude, longitude } = activeHotel;
+
+  useEffect(() => {
+    map = new mapboxgl.Map({
+      container: "map", // container ID
+      style: "mapbox://styles/mapbox/streets-v11", // style URL
+      center: [longitude, latitude], // starting position [lng, lat]
+      zoom: 18, // starting zoom
+    });
+
+    marker = new mapboxgl.Marker().setLngLat([longitude, latitude]).addTo(map);
+  }, []);
+
+  useEffect(() => {
+    map.easeTo({ center: [longitude, latitude], duration: 5000 });
+    marker.setLngLat([longitude, latitude]);
+  }, [activeHotel]);
 
   return (
     <div>
@@ -18,25 +82,37 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main>
-        <BeakerIcon className="h-5 w-5 text-blue-500" />
+      <main className="h-screen flex flex-col">
+        {/* Top Side: Map */}
+        <div id="map" className="h-full flex-1 bg-blue-400"></div>
 
-        <Switch
-          checked={enabled}
-          onChange={setEnabled}
-          className={`${
-            enabled ? "bg-blue-600" : "bg-gray-200"
-          } relative inline-flex items-center h-6 rounded-full w-11`}
-        >
-          <span className="sr-only">Enable notifications</span>
-          <span
-            className={`${
-              enabled ? "translate-x-6" : "translate-x-1"
-            } inline-block w-4 h-4 transform bg-white rounded-full`}
-          />
-        </Switch>
-
-        <div className="bg-blue-100 rounded shadow">My name is Jim</div>
+        {/* Bottom Side: Interaction panel  */}
+        <div className="h-full flex-1  overflow-y-auto">
+          {/* filter */}
+          <div>
+            <label>
+              <input
+                type="checkbox"
+                defaultChecked={onlyTaipei}
+                onChange={() => setOnlyTaipei(!onlyTaipei)}
+              />
+              Only show Taipei
+            </label>
+          </div>
+          {/* show list of famous hotels in Taipei */}
+          {hotels &&
+            hotels.map((hotel) => (
+              <div
+                onClick={() => {
+                  setActiveHotel(hotel);
+                }}
+                className="flex items-center p-4"
+                key={hotel.geoId}
+              >
+                {hotel.name}
+              </div>
+            ))}
+        </div>
       </main>
     </div>
   );
